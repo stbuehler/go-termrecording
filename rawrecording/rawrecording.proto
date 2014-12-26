@@ -1,0 +1,55 @@
+package rawrecording;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.gostring_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) =  true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+option (gogoproto.benchgen_all) = true;
+
+option (gogoproto.goproto_unrecognized_all) = false;
+
+// single raw frame
+message Frame {
+	// time offset from the beginning of the recording
+	required double offset = 1 [(gogoproto.nullable) = false];
+	// recorded data
+	required bytes data = 2 [(gogoproto.nullable) = false];
+}
+
+message TerminalSize {
+	required uint32 columns = 1 [(gogoproto.nullable) = false];
+	required uint32 rows = 2 [(gogoproto.nullable) = false];
+}
+
+// list of raw frames
+message FramePack {
+	repeated Frame frames = 1 [(gogoproto.nullable) = false];
+	optional TerminalSize terminalSize = 2;
+}
+
+message PackIndexEntry {
+	// time offset from the beginning of the recording of the first frame
+	// in a pack
+	required double offset = 1 [(gogoproto.nullable) = false];
+	// size of serialized pack
+	required uint32 pack_size = 2 [(gogoproto.nullable) = false];
+}
+
+// describe a list of Packs; packs must be splitted when they get too big.
+message PackIndex {
+	repeated PackIndexEntry entries = 1 [(gogoproto.nullable) = false];
+}
+
+// footer contains meta data
+message Meta {
+	required PackIndex packIndex = 1 [(gogoproto.nullable) = false];
+	required TerminalSize maxTerminalSize = 2 [(gogoproto.nullable) = false];
+}
