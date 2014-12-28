@@ -104,15 +104,18 @@ func (this Forwarder) Stop() {
 }
 
 func fd_SET(p *syscall.FdSet, i int) {
-	p.Bits[i/64] |= 1 << uint(i) % 64
+	mask := int64(1) << (uint(i) % 64)
+	p.Bits[i/64] |= mask
 }
 
 func fd_UNSET(p *syscall.FdSet, i int) {
-	p.Bits[i/64] &^= (1 << uint(i) % 64)
+	mask := int64(1) << (uint(i) % 64)
+	p.Bits[i/64] &^= mask
 }
 
 func fd_ISSET(p *syscall.FdSet, i int) bool {
-	return (p.Bits[i/64] & (1 << uint(i) % 64)) != 0
+	mask := int64(1) << (uint(i) % 64)
+	return (p.Bits[i/64] & mask) != 0
 }
 
 func fd_ZERO(p *syscall.FdSet) {
