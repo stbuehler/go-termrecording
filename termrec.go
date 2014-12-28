@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"github.com/stbuehler/go-termrecording/exportAsciinemaJson"
 	"github.com/stbuehler/go-termrecording/recording"
 	"io"
+	"io/ioutil"
 	"os"
 )
 
@@ -30,18 +32,53 @@ func stringify(v interface{}) string {
 }
 
 func main() {
-	recordingFile, err := os.OpenFile(
-		"term.rec",
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
-		0600)
+	opts := flag.NewFlagSet("recording options", flag.PanicOnError)
+	outputBaseName := opts.String("out", "recording", "recording output name (used as basename for .html and -stdout.json files); defaults to 'recording'")
+
+	err := opts.Parse(os.Args[1:])
 	if err != nil {
-		panic("couldn't open term.rec: " + err.Error())
+		return
 	}
 
-	command := os.Args[1:]
+	command := opts.Args()
+
 	if len(command) == 0 {
-		command = []string{"/bin/sh"}
+		shell := os.Getenv("SHELL")
+		if shell == "" {
+			shell = "/bin/sh"
+		}
+		command = []string{shell}
 	}
+
+	recordingFile, err := ioutil.TempFile("", "term-recording")
+	if err != nil {
+		panic("couldn't create temporary recording file")
+	}
+	defer recordingFile.Close()
+	defer os.Remove(recordingFile.Name())
+
+	stdoutJsonName := *outputBaseName + "-stdout.json"
+	htmlName := *outputBaseName + ".html"
+
+	stdoutJsonFile, err := os.OpenFile(
+		stdoutJsonName,
+		os.O_RDWR|os.O_CREATE|os.O_EXCL,
+		0644)
+	if err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
+
+	htmlFile, err := os.OpenFile(
+		htmlName,
+		os.O_RDWR|os.O_CREATE|os.O_EXCL,
+		0644)
+	if err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
+
+	println("Recording into " + htmlName)
 
 	err = recording.Execute(recordingFile, command[0], command[1:]...)
 	if err != nil {
@@ -59,8 +96,11 @@ func main() {
 		panic("couldn't read recording: " + err.Error())
 	}
 
-	err = exportAsciinemaJson.MakeFilm("term-stdout.json", "term.html", fileSecReader)
+	err = exportAsciinemaJson.MakeFilm(stdoutJsonName, stdoutJsonFile, htmlFile, fileSecReader)
 	if err != nil {
-		panic("couldn't write recording as JSON/HTML: " + err.Error())
+		println("couldn't write recording as JSON/HTML: " + err.Error())
+		return
 	}
+
+	println("Recording finished successfully")
 }

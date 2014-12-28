@@ -5,7 +5,6 @@ import (
 	tsm "github.com/stbuehler/go-termrecording/libtsm"
 	"github.com/stbuehler/go-termrecording/rawrecording"
 	"io"
-	"os"
 )
 
 type FilmFrame struct {
@@ -48,7 +47,7 @@ func (film *FilmMaker) AddFrame(timeOffset float64, screen tsm.Screen) {
 	}
 }
 
-func MakeFilm(jsonFileName string, htmlFileName string, fileReader *io.SectionReader) error {
+func MakeFilm(jsonFileName string, jsonFile io.Writer, htmlFile io.Writer, fileReader *io.SectionReader) error {
 	reader, err := rawrecording.NewReaderFromSectionReader(fileReader)
 	if err != nil {
 		return err
@@ -70,7 +69,7 @@ func MakeFilm(jsonFileName string, htmlFileName string, fileReader *io.SectionRe
 		return err
 	}
 
-	println(Stringify(reader.Meta))
+	// println(Stringify(reader.Meta))
 
 	for {
 		frame, _ := reader.ReadFrame()
@@ -78,7 +77,7 @@ func MakeFilm(jsonFileName string, htmlFileName string, fileReader *io.SectionRe
 			break
 		}
 		vte.InputBytes(frame.Data)
-		println(Stringify(frame))
+		// println(Stringify(frame))
 		film.AddFrame(frame.Offset, screen)
 	}
 
@@ -89,23 +88,7 @@ func MakeFilm(jsonFileName string, htmlFileName string, fileReader *io.SectionRe
 		return err
 	}
 
-	jsonFile, err := os.OpenFile(
-		jsonFileName,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
-		0644)
-	if err != nil {
-		return err
-	}
-
 	if _, err := jsonFile.Write(filmJson); err != nil {
-		return err
-	}
-
-	htmlFile, err := os.OpenFile(
-		htmlFileName,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
-		0644)
-	if err != nil {
 		return err
 	}
 
